@@ -1,0 +1,5 @@
+{
+  "name": "Patent Investigator",
+  "description": "A technical investigation workstation for patent examiners and IP analysts to analyze inventions and explore prior art connections.",
+  "requestFramePermissions": []
+}
