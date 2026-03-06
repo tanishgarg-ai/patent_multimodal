@@ -18,6 +18,7 @@ class ChunkMetadata:
     section: str = ""
     year: int = 0
     classification: str = ""
+    pdf_url: str = ""
     # other metadata mapped from document
 
 @dataclass
@@ -63,6 +64,7 @@ class PatentChunker:
             except:
                 year = 0
         classification = doc.get("classification", "")
+        pdf_url = doc.get("pdf_url", "")
 
         # For patents we structure per section
         sections_to_chunk = {
@@ -94,7 +96,8 @@ class PatentChunker:
                     doc_type=doc_type,
                     section=section_name,
                     year=year,
-                    classification=classification
+                    classification=classification,
+                    pdf_url=pdf_url
                 )
                 
                 chunks.append(DocumentChunk(content=chunk_text, metadata=metadata))

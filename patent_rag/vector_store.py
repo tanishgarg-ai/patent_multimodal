@@ -65,7 +65,8 @@ class PatentVectorStore:
                     "section": chunk.metadata.section,
                     "year": int(chunk.metadata.year) if chunk.metadata.year else 0,
                     "classification": chunk.metadata.classification,
-                    "chunk_index": int(chunk.metadata.chunk_index)
+                    "chunk_index": int(chunk.metadata.chunk_index),
+                    "pdf_url": chunk.metadata.pdf_url
                 }
                 metadatas.append(meta)
                 

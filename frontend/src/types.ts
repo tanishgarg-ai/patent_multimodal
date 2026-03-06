@@ -12,6 +12,7 @@ export interface Patent {
     diagram: number;
   };
   filingDate: string;
+  pdfUrl?: string;
 }
 
 export interface ClaimMatch {

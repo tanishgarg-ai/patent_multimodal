@@ -8,14 +8,14 @@ import { PriorArtGraph } from '../components/PriorArtGraph';
 import { ClaimDecomposition } from '../components/ClaimDecomposition';
 import { Timeline } from '../components/Timeline';
 import { usePatentAnalysis } from '../hooks/usePatentAnalysis';
-import { 
-  Search, 
-  Database, 
-  Cpu, 
-  Network, 
-  X, 
-  Info, 
-  History, 
+import {
+  Search,
+  Database,
+  Cpu,
+  Network,
+  X,
+  Info,
+  History,
   Layers,
   Activity
 } from 'lucide-react';
@@ -74,22 +74,29 @@ export const Dashboard: React.FC = () => {
               )}
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-              {!results && !isAnalyzing && (
+              {!results && !isAnalyzing && !error && (
                 <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50">
                   <Search size={48} strokeWidth={1} className="mb-4" />
                   <p className="text-sm font-mono">Awaiting invention analysis...</p>
                 </div>
               )}
 
+              {error && (
+                <div className="h-full flex flex-col items-center justify-center text-red-500 opacity-80">
+                  <X size={48} strokeWidth={1} className="mb-4" />
+                  <p className="text-sm font-mono">{error}</p>
+                </div>
+              )}
+
               {isAnalyzing && (
                 <div className="h-full flex flex-col items-center justify-center">
                   <div className="relative w-24 h-24 mb-6">
-                    <motion.div 
+                    <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
                       className="absolute inset-0 border-2 border-cyan-500/20 rounded-full"
                     />
-                    <motion.div 
+                    <motion.div
                       animate={{ rotate: -360 }}
                       transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
                       className="absolute inset-2 border-2 border-cyan-500/40 border-t-cyan-500 rounded-full"
@@ -126,7 +133,7 @@ export const Dashboard: React.FC = () => {
               )}
 
               {results && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="space-y-8"
@@ -200,14 +207,14 @@ export const Dashboard: React.FC = () => {
       <AnimatePresence>
         {selectedPatent && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedPatent(null)}
               className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[60]"
             />
-            <motion.div 
+            <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -218,7 +225,7 @@ export const Dashboard: React.FC = () => {
                 <div className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-[10px] font-mono uppercase">
                   {selectedPatent.source} Detail
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedPatent(null)}
                   className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400"
                 >
@@ -247,7 +254,7 @@ export const Dashboard: React.FC = () => {
                   <div className="space-y-3">
                     {selectedPatent.keyClaims.map((claim, i) => (
                       <div key={i} className="p-3 bg-slate-950/50 rounded border border-slate-800/50 text-xs text-slate-400">
-                        <span className="text-cyan-500 font-mono mr-2">CLAIM {i+1}:</span>
+                        <span className="text-cyan-500 font-mono mr-2">CLAIM {i + 1}:</span>
                         {claim}
                       </div>
                     ))}

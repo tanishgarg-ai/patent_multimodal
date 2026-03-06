@@ -1,76 +1,66 @@
-import { AnalysisResponse } from "../types";
+import { AnalysisResponse, Patent, NoveltyAssessment, GraphData } from "../types";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const analyzeInvention = async (description: string, diagram?: File): Promise<AnalysisResponse> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 3000));
-
-  return {
-    patents: [
-      {
-        id: "US10345672",
-        title: "Autonomous Drone Navigation with Obstacle Avoidance",
-        year: 2019,
-        similarityScore: 0.87,
-        source: 'Patent',
-        abstract: "A system for autonomous drone flight using multiple sensors to detect and avoid obstacles in real-time.",
-        keyClaims: ["A method for navigating a drone using LiDAR data...", "A neural network trained on obstacle datasets..."],
-        similarityBreakdown: { text: 0.85, claim: 0.92, diagram: 0.75 },
-        filingDate: "2019-05-12"
+  try {
+    const response = await fetch(`${API_URL}/api/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      {
-        id: "US9876543",
-        title: "Deep Learning for Real-time Object Detection",
-        year: 2017,
-        similarityScore: 0.72,
-        source: 'Patent',
-        abstract: "Methods for processing high-speed video streams to identify objects using convolutional neural networks.",
-        keyClaims: ["An architecture for low-latency inference...", "A training pipeline for edge devices..."],
-        similarityBreakdown: { text: 0.70, claim: 0.75, diagram: 0.60 },
-        filingDate: "2017-08-20"
-      }
-    ],
-    papers: [
-      {
-        id: "PAPER-2023-01",
-        title: "LiDAR-based SLAM in Dynamic Environments",
-        year: 2023,
-        similarityScore: 0.65,
-        source: 'Paper',
-        abstract: "Recent advances in simultaneous localization and mapping using high-frequency LiDAR scanners.",
-        keyClaims: ["Novel algorithm for dynamic point cloud filtering...", "Performance benchmarks on mobile platforms..."],
-        similarityBreakdown: { text: 0.68, claim: 0.60, diagram: 0.55 },
-        filingDate: "2023-01-15"
-      }
-    ],
-    noveltyAssessment: {
-      riskLevel: 'HIGH',
-      explanation: "The core components of LiDAR-based navigation and deep learning for obstacle avoidance are heavily documented in US10345672.",
-      claimComparison: [
-        { component: "LiDAR navigation", priorArtMatch: "Patent US10345672", similarity: 0.87 },
-        { component: "Deep learning model", priorArtMatch: "Patent US9876543", similarity: 0.72 },
-        { component: "Real-time avoidance", priorArtMatch: "Patent US10345672", similarity: 0.91 }
-      ],
-      decomposition: [
-        { component: "Drone navigation", isMatched: true },
-        { component: "LiDAR sensing", isMatched: true },
-        { component: "Deep learning model", isMatched: true },
-        { component: "Real-time obstacle avoidance", isMatched: true },
-        { component: "Quantum-encrypted telemetry", isMatched: false }
-      ]
-    },
-    graphData: {
-      nodes: [
-        { id: 'invention', label: 'Your Invention', type: 'invention' },
-        { id: 'US10345672', label: 'US10345672', type: 'patent' },
-        { id: 'US9876543', label: 'US9876543', type: 'patent' },
-        { id: 'PAPER-2023-01', label: 'SLAM Paper', type: 'paper' }
-      ],
-      edges: [
-        { source: 'invention', target: 'US10345672', label: 'High Similarity' },
-        { source: 'invention', target: 'US9876543', label: 'Moderate Similarity' },
-        { source: 'invention', target: 'PAPER-2023-01', label: 'Contextual' },
-        { source: 'US10345672', target: 'US9876543', label: 'Cites' }
-      ]
+      body: JSON.stringify({
+        description,
+        diagram: null // File uploading logic can be added here later if needed
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.statusText}`);
     }
-  };
+
+    const data = await response.json();
+
+    // Helper function to map dynamic backend fields to frontend Patent type
+    const mapDocument = (doc: any, defaultSource: 'Patent' | 'Paper'): Patent => ({
+      id: doc.id || doc.patent_number || doc.document_id || `DOC-${Math.floor(Math.random() * 10000)}`,
+      title: doc.title || 'Unknown Title',
+      year: doc.year || (doc.publication_date ? parseInt(doc.publication_date.substring(0, 4)) : new Date().getFullYear()),
+      similarityScore: doc.similarity_score || doc.score || 0.0,
+      source: defaultSource,
+      abstract: doc.abstract || 'No abstract available',
+      keyClaims: doc.claims || doc.key_claims || [],
+      similarityBreakdown: doc.similarityBreakdown || doc.similarity_breakdown || { text: doc.similarity_score || 0, claim: 0, diagram: 0 },
+      filingDate: doc.filing_date || doc.publication_date || "Unknown",
+      pdfUrl: doc.pdf_url || doc.pdfUrl || undefined
+    });
+
+    const mappedPatents = (data.patents || []).map((p: any) => mapDocument(p, 'Patent'));
+    const mappedPapers = (data.papers || []).map((p: any) => mapDocument(p, 'Paper'));
+
+    // Since the backend currently returns a mocked or basic structure for novelty_assessment, 
+    // handle fallback mapping to prevent frontend breakage.
+    const noveltyAssessment: NoveltyAssessment = {
+      riskLevel: data.novelty_assessment?.risk_level === 'UNKNOWN' ? 'MEDIUM' : (data.novelty_assessment?.risk_level || 'MEDIUM'),
+      explanation: data.novelty_assessment?.details !== "See analysis_report" ? data.novelty_assessment?.details : (data.analysis_report || "The system analyzed the provided description and evaluated potential risks."),
+      claimComparison: data.novelty_assessment?.claim_comparison || [],
+      decomposition: data.novelty_assessment?.decomposition || []
+    };
+
+    const graphData: GraphData = {
+      nodes: data.graph_data?.nodes || [],
+      edges: data.graph_data?.edges || []
+    };
+
+    return {
+      patents: mappedPatents,
+      papers: mappedPapers,
+      noveltyAssessment,
+      graphData
+    };
+  } catch (error) {
+    console.error("Error analyzing invention:", error);
+    throw error;
+  }
 };
+
