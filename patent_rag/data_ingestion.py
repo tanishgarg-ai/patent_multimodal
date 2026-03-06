@@ -5,6 +5,7 @@ import requests
 import time
 from typing import List, Dict, Any, Optional
 from semanticscholar import SemanticScholar
+from pdf_utils import PDFProcessor
 try:
     from google.cloud import bigquery
 except ImportError:
@@ -20,6 +21,7 @@ class WebDataFetcher:
         self.uspto_api_url = "https://api.uspto.gov/api/v1/patent/applications/search"
         self.uspto_api_key = uspto_api_key
         self.google_project_id = google_project_id
+        self.pdf_processor = PDFProcessor()
         if bigquery and google_project_id and google_project_id != "your_google_cloud_project_id_here":
             try:
                 self.bq_client = bigquery.Client(project=google_project_id)
@@ -109,13 +111,22 @@ class WebDataFetcher:
                 pub_num = row.publication_number
                 pdf_url = f"https://patents.google.com/patent/{pub_num}/en"
                 
+                # Fetch and extract PDF text
+                local_pdf_path = self.pdf_processor.download_google_patent_pdf(pub_num)
+                description, claims = self.pdf_processor.process_pdf(local_pdf_path)
+                
+                # If PDF text extraction failed or failed to separate claims, use HTML fallback
+                if not claims or len(description) < 500:
+                    logger.info(f"PDF extraction yielded empty claims for {pub_num}, falling back to HTML extraction.")
+                    description, claims = self.pdf_processor.extract_text_from_html(pub_num)
+                
                 patents.append({
                     "doc_type": "patent",
                     "patent_id": pub_num,
                     "title": row.title or "No title available.",
                     "abstract": row.abstract or "No abstract available.",
-                    "claims": "", 
-                    "description": row.abstract or "", 
+                    "claims": claims, 
+                    "description": description if description else (row.abstract or ""), 
                     "publication_date": str(row.publication_date),
                     "classification": row.country_code,
                     "pdf_url": pdf_url, 
