@@ -1,1 +1,5 @@
 *.env
+*.bin
+*.pdf
+*.sqlite3
+*.png

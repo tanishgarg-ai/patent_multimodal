@@ -7,10 +7,7 @@ from typing import List, Dict, Any, Optional
 from semanticscholar import SemanticScholar
 from pdf_utils import PDFProcessor
 
-try:
-    from google.cloud import bigquery
-except ImportError:
-    bigquery = None
+# BigQuery import removed since we are moving to manual PDF uploads.
 
 logger = logging.getLogger(__name__)
 
@@ -26,18 +23,8 @@ class WebDataFetcher:
         # but it is no longer used for the main BigQuery fetching.
         self.pdf_processor = PDFProcessor()
 
-        if bigquery and google_project_id and google_project_id != "your_google_cloud_project_id_here":
-            try:
-                self.bq_client = bigquery.Client(project=google_project_id)
-                logger.info(f"Initialized BigQuery client for project: {google_project_id}")
-            except Exception as e:
-                logger.warning(
-                    f"Failed to initialize BigQuery client: {e}. Ensure you run 'gcloud auth application-default login'")
-                self.bq_client = None
-        else:
-            if not google_project_id or google_project_id == "your_google_cloud_project_id_here":
-                logger.warning("Google Cloud Project ID not configured. BigQuery retrieval disabled.")
-            self.bq_client = None
+        # BigQuery initialization removed. WebFetcher now only fetches academic papers.
+        self.bq_client = None
 
     def fetch_papers(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """Fetch academic papers from Semantic Scholar with simple retry for rate limits."""
@@ -72,78 +59,9 @@ class WebDataFetcher:
         return []
 
     def fetch_patents(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
-        """Fetch patents from Google Patents (BigQuery)."""
-        if self.bq_client:
-            return self._fetch_patents_google(query, limit)
-        else:
-            logger.error("BigQuery client is not initialized. Cannot fetch patents.")
-            return []
-
-    def _fetch_patents_google(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
-        """Fetch FULL patents from Google Patents Public Dataset using BigQuery."""
-        logger.info(f"Fetching full patents from Google Patents (BigQuery) for query: {query}")
-        try:
-            # Prepare independent keywords for broader matching
-            import re
-            # Split by non-alphanumeric characters to handle hyphens etc.
-            keywords = [kw.lower() for kw in re.split(r'[^a-zA-Z0-9]', query) if len(kw) > 3]
-
-            if not keywords:
-                keywords = [query.lower()]
-
-            logger.info(f"Using keywords for BigQuery: {keywords}")
-
-            title_conditions = " AND ".join([f"LOWER(t.text) LIKE '%{kw}%'" for kw in keywords])
-            abstract_conditions = " AND ".join([f"LOWER(a.text) LIKE '%{kw}%'" for kw in keywords])
-
-            # Prepare safe query that grabs all text fields
-            sql = f"""
-            SELECT 
-                publication_number, 
-                (SELECT text FROM UNNEST(title_localized) WHERE language = 'en' LIMIT 1) as title,
-                (SELECT text FROM UNNEST(abstract_localized) WHERE language = 'en' LIMIT 1) as abstract,
-                (SELECT text FROM UNNEST(claims_localized) WHERE language = 'en' LIMIT 1) as claims,
-                (SELECT text FROM UNNEST(description_localized) WHERE language = 'en' LIMIT 1) as description,
-                publication_date,
-                country_code
-            FROM `patents-public-data.patents.publications`
-            WHERE (EXISTS (SELECT 1 FROM UNNEST(title_localized) t WHERE t.language = 'en' AND {title_conditions}))
-               OR (EXISTS (SELECT 1 FROM UNNEST(abstract_localized) a WHERE a.language = 'en' AND {abstract_conditions}))
-            LIMIT {limit}
-            """
-
-            logger.debug(f"Executing BigQuery SQL: {sql}")
-            query_job = self.bq_client.query(sql)
-            results = query_job.result()
-
-            patents = []
-            for row in results:
-                pub_num = row.publication_number
-                pdf_url = f"https://patents.google.com/patent/{pub_num}/en"
-
-                # Using directly extracted text from BigQuery instead of scraping
-                abstract_text = row.abstract or "No abstract available."
-                description_text = row.description or abstract_text
-                claims_text = row.claims or ""
-
-                patents.append({
-                    "doc_type": "patent",
-                    "patent_id": pub_num,
-                    "title": row.title or "No title available.",
-                    "abstract": abstract_text,
-                    "claims": claims_text,
-                    "description": description_text,
-                    "publication_date": str(row.publication_date),
-                    "classification": row.country_code,
-                    "pdf_url": pdf_url,
-                    "image_paths": []
-                })
-
-            logger.info(f"Google BigQuery returned {len(patents)} patents with full text.")
-            return patents
-        except Exception as e:
-            logger.error(f"Error fetching patents from Google BigQuery: {e}")
-            return []
+        """Fetch patents logic removed. Patents will now be uploaded manually."""
+        logger.info("Automated patent fetching is disabled. Please use the manual upload endpoint.")
+        return []
 
 
 class PatentCorpusLoader:

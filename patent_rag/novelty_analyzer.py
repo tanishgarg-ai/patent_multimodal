@@ -53,20 +53,52 @@ class NoveltyAnalyzer:
 
         full_context = "\n\n".join(context_parts)
 
-        prompt = f"""You are an expert Patent Examiner and IP Analyst.
-Analyze whether the following invention description is novel based on the retrieved prior art documents.
+        prompt = f"""
+    You are an expert Patent Examiner and Intellectual Property Analyst.
 
-Invention Description:
-{invention_description}
+    Analyze whether the following invention is novel based on the retrieved prior art.
 
-Retrieved Prior Art:
-{full_context}
+    Invention Description:
+    {invention_description}
 
-Please provide a detailed novelty analysis in the following format:
-1. Prior Art Matches: (Summarize the closest patents and papers)
-2. Claim Similarities: (Compare the core technical ideas, system components, and methods of the invention vs the retrieved claims)
-3. Novelty Risk Assessment: (Conclude with a clear risk level: LOW, MEDIUM, or HIGH, accompanied by a concluding sentence)
-"""
+    Retrieved Prior Art:
+    {full_context}
+
+    Your task is to determine if the invention is novel compared to the prior art.
+
+    Return your response STRICTLY as valid JSON using the following schema.
+
+    {{
+      "summary": "Short explanation of novelty analysis",
+      "risk_level": "LOW | MEDIUM | HIGH",
+      "matched_patents": [
+        {{
+          "patent_id": "string",
+          "title": "string",
+          "similarity_reason": "short explanation"
+        }}
+      ],
+      "claim_comparison": [
+        {{
+          "invention_component": "string",
+          "prior_art_component": "string",
+          "explanation": "why they match"
+        }}
+      ],
+      "key_evidence": [
+        {{
+          "source_patent_id": "string",
+          "evidence_text": "relevant quote from prior art"
+        }}
+      ]
+    }}
+
+    Rules:
+    - Output ONLY JSON.
+    - Do not include markdown.
+    - Do not include explanations outside the JSON.
+    - risk_level must be LOW, MEDIUM, or HIGH.
+    """
 
         try:
             if self.provider == "gemini":

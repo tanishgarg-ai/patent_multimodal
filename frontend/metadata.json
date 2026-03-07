@@ -1,5 +1,5 @@
 {
-  "name": "Patent Investigator",
-  "description": "A technical investigation workstation for patent examiners and IP analysts to analyze inventions and explore prior art connections.",
+  "name": "Patent Prior-Art Investigation",
+  "description": "A technical patent investigation workstation for uploading patent PDFs, analyzing inventions, and exploring prior art.",
   "requestFramePermissions": []
 }
